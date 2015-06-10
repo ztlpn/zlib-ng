@@ -211,14 +211,22 @@ local inline Pos insert_string(deflate_state *const s, const Pos str) {
 
 
 #ifndef NOT_TWEAK_COMPILER
-local inline void
-bulk_insert_str(deflate_state *const s, Pos startpos, uInt count) {
+local inline void bulk_insert_str(deflate_state *const s, Pos startpos, uInt count) {
     uInt idx;
-    for (idx = 0; idx < count; idx++) {
-        insert_string(s, startpos + idx);
+# ifdef X86_SSE4_2_CRC_HASH
+    if (x86_cpu_has_sse42) {
+        for (idx = 0; idx < count; idx++) {
+            insert_string_sse(s, startpos + idx);
+        }
+    } else
+# endif
+    {
+        for (idx = 0; idx < count; idx++) {
+            insert_string_c(s, startpos + idx);
+        }
     }
 }
-#endif
+#endif /* NOT_TWEAK_COMPILER */
 
 /* ===========================================================================
  * Initialize the hash table (avoiding 64K overflow for 16 bit systems).
