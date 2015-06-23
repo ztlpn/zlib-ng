@@ -176,6 +176,7 @@ local inline Pos insert_string_sse(deflate_state *const s, const Pos str, uInt c
     for (idx = 0; idx < count; idx++) {
         ip = (unsigned *)&s->window[str+idx];
         val = *ip;
+        h = 0;
 
         if (s->level >= 6)
             val &= 0xFFFFFF;
@@ -185,11 +186,11 @@ local inline Pos insert_string_sse(deflate_state *const s, const Pos str, uInt c
             : "+r" (h)
             : "r" (val)
         );
-    }
 
-    ret = s->head[h & s->hash_mask];
-    s->head[h & s->hash_mask] = str+count-1;
-    s->prev[(str+count-1) & s->w_mask] = ret;
+        ret = s->head[h & s->hash_mask];
+        s->head[h & s->hash_mask] = str+idx;
+        s->prev[(str+idx) & s->w_mask] = ret;
+    }
     return ret;
 }
 #endif
@@ -200,10 +201,9 @@ local inline Pos insert_string_c(deflate_state *const s, const Pos str, uInt cou
 
     for (idx = 0; idx < count; idx++) {
         UPDATE_HASH(s, s->ins_h, str+idx);
+        ret = s->prev[(str+idx) & s->w_mask] = s->head[s->ins_h];
+        s->head[s->ins_h] = str+idx;
     }
-
-    ret = s->prev[(str+count-1) & s->w_mask] = s->head[s->ins_h];
-    s->head[s->ins_h] = str+count-1;
     return ret;
 }
 
@@ -220,7 +220,7 @@ local inline Pos insert_string(deflate_state *const s, const Pos str) {
 local inline void bulk_insert_str(deflate_state *const s, Pos startpos, uInt count) {
 # ifdef X86_SSE4_2_CRC_HASH
     if (x86_cpu_has_sse42) {
-        insert_string_sse(s, startpos, count);
+        insert_string_c(s, startpos, count);
     } else
 # endif
     {
@@ -1453,9 +1453,9 @@ local block_state deflate_fast(deflate_state *s, int flush) {
             /* Insert new strings in the hash table only if the match length
              * is not too large. This saves time but degrades compression.
              */
-            if (s->match_length <= s->max_insert_length &&
-                s->lookahead >= MIN_MATCH) {
+            if (s->match_length <= s->max_insert_length && s->lookahead >= MIN_MATCH) {
                 s->match_length--; /* string at strstart already in table */
+#ifdef NOT_TWEAK_COMPILER
                 do {
                     s->strstart++;
                     insert_string(s, s->strstart);
@@ -1463,6 +1463,13 @@ local block_state deflate_fast(deflate_state *s, int flush) {
                      * always MIN_MATCH bytes ahead.
                      */
                 } while (--s->match_length != 0);
+#else
+                {
+                    bulk_insert_str(s, s->strstart+1, s->match_length);
+                    s->strstart += s->match_length;
+                    s->match_length = 0;
+                }
+#endif
                 s->strstart++;
             } else {
                 s->strstart += s->match_length;
