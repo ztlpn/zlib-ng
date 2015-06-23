@@ -220,7 +220,7 @@ local inline Pos insert_string(deflate_state *const s, const Pos str) {
 local inline void bulk_insert_str(deflate_state *const s, Pos startpos, uInt count) {
 # ifdef X86_SSE4_2_CRC_HASH
     if (x86_cpu_has_sse42) {
-        insert_string_c(s, startpos, count);
+        insert_string_sse(s, startpos, count);
     } else
 # endif
     {
@@ -1455,22 +1455,22 @@ local block_state deflate_fast(deflate_state *s, int flush) {
              */
             if (s->match_length <= s->max_insert_length && s->lookahead >= MIN_MATCH) {
                 s->match_length--; /* string at strstart already in table */
+                s->strstart++;
 #ifdef NOT_TWEAK_COMPILER
                 do {
-                    s->strstart++;
                     insert_string(s, s->strstart);
+                    s->strstart++;
                     /* strstart never exceeds WSIZE-MAX_MATCH, so there are
                      * always MIN_MATCH bytes ahead.
                      */
                 } while (--s->match_length != 0);
 #else
                 {
-                    bulk_insert_str(s, s->strstart+1, s->match_length);
+                    bulk_insert_str(s, s->strstart, s->match_length);
                     s->strstart += s->match_length;
                     s->match_length = 0;
                 }
 #endif
-                s->strstart++;
             } else {
                 s->strstart += s->match_length;
                 s->match_length = 0;
