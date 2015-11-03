@@ -466,7 +466,7 @@ uint32_t ZLIB_INTERNAL crc_fold_512to32(deflate_state *const s) {
     xmm_crc3 = _mm_xor_si128(xmm_crc3, xmm_crc2);
     xmm_crc3 = _mm_xor_si128(xmm_crc3, xmm_crc1);
 
-    crc = _mm_extract_epi32(xmm_crc3, 2);
+    crc = mm_extract_epi32(xmm_crc3, 2);
     return ~crc;
     CRC_SAVE(s)
 }
