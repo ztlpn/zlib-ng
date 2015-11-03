@@ -395,6 +395,16 @@ local const unsigned ALIGNED_(16) crc_mask2[4] = {
     0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
 };
 
+// clang's smmintrin.h defines _mm_extract_epi32() as:
+// #define _mm_extract_epi32(X,N) (__extension__ ({ __v4si __a = (__v4si)(X); __a[(N) & 3];}))
+// meaning we can avoid an SSE4.1 intrinsic ("pextrd") in this PCLMULQDQ file by doing
+
+inline int mm_extract_epi32(__m128i a, const int ndx)
+{
+    __v4si b = (__v4si) a;
+    return b[ndx & 3];
+}
+
 uint32_t ZLIB_INTERNAL crc_fold_512to32(deflate_state *const s) {
     const __m128i xmm_mask  = _mm_load_si128((__m128i *)crc_mask);
     const __m128i xmm_mask2 = _mm_load_si128((__m128i *)crc_mask2);
