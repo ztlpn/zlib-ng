@@ -44,7 +44,6 @@ enable_testing()
 check_include_file(sys/types.h  HAVE_SYS_TYPES_H)
 check_include_file(stdint.h     HAVE_STDINT_H)
 check_include_file(stddef.h     HAVE_STDDEF_H)
-check_include_file(bsd/stdlib.h HAVE_BSD_STDLIB_H)
 
 #
 # Option parsing
@@ -91,9 +90,6 @@ endif()
 if(HAVE_STDDEF_H)
     list(APPEND CMAKE_REQUIRED_DEFINITIONS -DHAVE_STDDEF_H)
 endif()
-if(HAVE_BSD_STDLIB_H)
-    list(APPEND CMAKE_REQUIRED_DEFINITIONS -DHAVE_BSD_STDLIB)
-endif()
 check_type_size(off64_t OFF64_T)
 if(HAVE_OFF64_T)
    add_definitions(-D_LARGEFILE64_SOURCE=1)
@@ -132,14 +128,6 @@ check_c_source_compiles(
 if(HAVE_ATTRIBUTE_VISIBILITY_HIDDEN)
     add_definitions(-DHAVE_HIDDEN)
 endif()
-
-# #
-# # check if we need to link libbsd to get the reallocf function
-# #
-# check_library_exists(bsd reallocf "" HAVE_BSDLIB)
-# if(HAVE_BSDLIB)
-#     link_libraries(-lbsd)
-# endif()
 
 #
 # check for __builtin_ctzl() support in the compiler
