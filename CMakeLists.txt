@@ -219,7 +219,11 @@ else()
     #
     # not MSVC, so we need to check if we have the MS-style SSE etc. intrinsics
     #
-    set(CMAKE_REQUIRED_FLAGS "${SSE2FLAG}")
+    if(WITH_NATIVE_INSTRUCTIONS)
+        set(CMAKE_REQUIRED_FLAGS "${NATIVEFLAG}")
+    else()
+        set(CMAKE_REQUIRED_FLAGS "${SSE2FLAG}")
+    endif()
     check_c_source_runs(
         "#include <immintrin.h>
         int main(void)
@@ -230,8 +234,12 @@ else()
         }"
         HAVE_SSE2_INTRIN
     )
-    # use the generic SSE4 enabler option to check for the SSE4.2 instruction we require:
-    set(CMAKE_REQUIRED_FLAGS "${SSE4FLAG}")
+    if(WITH_NATIVE_INSTRUCTIONS)
+        # use the generic SSE4 enabler option to check for the SSE4.2 instruction we require:
+        set(CMAKE_REQUIRED_FLAGS "${NATIVEFLAG}")
+    else()
+        set(CMAKE_REQUIRED_FLAGS "${SSE4FLAG}")
+    endif()
     check_c_source_runs(
         "int main(void)
         {
@@ -241,18 +249,25 @@ else()
         }"
         HAVE_SSE42_INTRIN
     )
-    # the PCLMUL instruction we use also requires an SSE4.1 instruction check for both
-    set(CMAKE_REQUIRED_FLAGS "${SSE4FLAG} ${PCLMULFLAG}")
+    if(WITH_NATIVE_INSTRUCTIONS)
+        set(CMAKE_REQUIRED_FLAGS "${NATIVEFLAG}")
+    else()
+        set(CMAKE_REQUIRED_FLAGS "${PCLMULFLAG}")
+    endif()
     check_c_source_runs(
         "#include <immintrin.h>
-        #include <smmintrin.h>
         #include <wmmintrin.h>
+        inline unsigned int mm_extract_epi32(__m128i x, const int n)
+        {
+            __v4si a = (__v4si) x;
+            return a[n & 3];
+        }
         int main(void)
         {
             __m128i a = _mm_setzero_si128();
             __m128i b = _mm_setzero_si128();
             __m128i c = _mm_clmulepi64_si128(a, b, 0x10);
-            unsigned int d = _mm_extract_epi32(c, 2);
+            unsigned int d = mm_extract_epi32(c, 2);
             (void)c;
             return (int) d;
         }"
