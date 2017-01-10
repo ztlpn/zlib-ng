@@ -49,8 +49,8 @@
 #endif
 #define SUFFIX_LEN (sizeof(GZ_SUFFIX)-1)
 
-#define BUFLEN      16384        /* read buffer size */
-#define BUFLENW     (BUFLEN * 3) /* write buffer size */
+#define BUFLEN      65536        /* read buffer size */
+#define BUFLENW     1024         /* write buffer size */
 #define MAX_NAME_LEN 1024
 
 #ifndef WITH_GZFILEOP
